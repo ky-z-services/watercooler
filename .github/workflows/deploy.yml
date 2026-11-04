@@ -21,10 +21,10 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     strategy:
-      # A failed (and rolled back) instance must not cancel the other one.
+      # A failed (and rolled back) instance must not cancel the others.
       fail-fast: false
       matrix:
-        # The same code runs as several independent instances, each with its own directory
+        # The same code can run as several independent instances, each with its own directory
         # (~/<instance>), database, port and URL prefix. nginx proxies https://<domain><base_path>/
         # to 127.0.0.1:<port> and strips the prefix (see deploy/README.md). site_copy picks the
         # copy set in apps/web/src/lib/site-copy.ts.
@@ -34,11 +34,6 @@ jobs:
             port: 3000
             site_name: Watercooler
             site_copy: watercooler
-          - instance: gang-bet
-            base_path: /gang-bet
-            port: 3001
-            site_name: gang-bet
-            site_copy: neutral
     env:
       INSTANCE: ${{ matrix.instance }}
       # Where the instance lives on the server, in the home directory of DEPLOY_USER.

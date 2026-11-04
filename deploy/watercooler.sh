@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Runs one Watercooler instance in the background without systemd.
 #
-#   ~/<instance>/<instance>.sh start|stop|restart|status|logs   e.g. ~/gang-bet/gang-bet.sh restart
+#   ~/<instance>/<instance>.sh start|stop|restart|status|logs   e.g. ~/watercooler/watercooler.sh restart
 #   ~/<instance>/<instance>.sh reset-password <username> <new-password>
 #   ~/<instance>/<instance>.sh make-admin <username>      first admin; the rest are added at /admin
 #

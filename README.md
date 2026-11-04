@@ -76,7 +76,7 @@ pnpm dev         # 前端 http://localhost:5173 ，API http://localhost:3000
 
 ### GitHub Actions 自动部署
 
-推送到 `main` 后自动构建、测试并通过 SSH 部署到服务器（后台脚本运行 + nginx 反向代理，支持部署在子路径下，失败自动回滚，不需要 systemd 和 sudo）。同一份代码部署成两个互相独立的实例：`/watercooler` 和 `/gang-bet`，各用各的数据库。服务器一次性准备、需要配置的 Secrets 和怎么再加实例见 [`deploy/README.md`](deploy/README.md)。
+推送到 `main` 后自动构建、测试并通过 SSH 部署到服务器（后台脚本运行 + nginx 反向代理，支持部署在子路径下，失败自动回滚，不需要 systemd 和 sudo）。现在部署了一个实例 `/watercooler`；同一份代码也能部署成多个互相独立的实例，各用各的数据库。服务器一次性准备、需要配置的 Secrets、怎么加减实例见 [`deploy/README.md`](deploy/README.md)。
 
 ### 直接运行
 

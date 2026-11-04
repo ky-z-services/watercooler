@@ -10,7 +10,7 @@ import { SITE_COPY, type SiteCopyName } from './src/lib/site-copy';
 const trimmed = (process.env.BASE_PATH ?? '').replace(/^\/+|\/+$/g, '');
 const base = trimmed ? `/${trimmed}/` : '/';
 
-/** Name in the logo, footer and page title, e.g. SITE_NAME=gang-bet for a second instance. */
+/** Name in the logo, footer and page title, e.g. SITE_NAME=Watercooler. */
 const siteName = process.env.SITE_NAME?.trim() || 'Watercooler';
 
 /** Which copy set from src/lib/site-copy.ts to use, e.g. SITE_COPY=neutral. */
