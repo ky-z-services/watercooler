@@ -1,15 +1,18 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Button, Card, Field, Input } from '../components/ui';
+import { Button, buttonClass, Card, Field, Input } from '../components/ui';
 import { api, errorMessage } from '../lib/api';
-import { useMe } from '../lib/auth';
+import { ssoLoginUrl, useConfig, useMe } from '../lib/auth';
 import { usePageTitle } from '../lib/site';
 
 export default function SettingsPage() {
   usePageTitle('账号设置');
   const { me } = useMe();
+  const config = useConfig();
   const qc = useQueryClient();
+  // Accounts made through a ky-z sign-in set a first password without an old one.
+  const firstPassword = me !== null && !me.hasPassword;
   const [displayName, setDisplayName] = useState(me?.displayName ?? '');
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -24,11 +27,12 @@ export default function SettingsPage() {
     onError: (err) => toast.error(errorMessage(err)),
   });
   const password = useMutation({
-    mutationFn: () => api.changePassword(oldPassword, newPassword),
+    mutationFn: () => api.changePassword(firstPassword ? undefined : oldPassword, newPassword),
     onSuccess: () => {
       setOldPassword('');
       setNewPassword('');
-      toast.success('密码已修改，其他设备已退出登录');
+      if (firstPassword) void qc.invalidateQueries({ queryKey: ['me'] });
+      toast.success(firstPassword ? '密码已设置' : '密码已修改，其他设备已退出登录');
     },
     onError: (err) => toast.error(errorMessage(err)),
   });
@@ -52,16 +56,39 @@ export default function SettingsPage() {
           保存
         </Button>
       </Card>
+      {config?.sso && me && (
+        <Card className="space-y-3 p-6">
+          <h2 className="font-semibold">ky-z 账号</h2>
+          {me.kyzLinked ? (
+            <p className="text-sm leading-relaxed text-dim">已关联 ky-z 账号，用它登录所有 ky-z 网站。</p>
+          ) : (
+            <>
+              <p className="text-sm leading-relaxed text-dim">
+                还没有关联 ky-z 账号。关联后就用 ky-z 账号登录，水滴、下注和排名都不变。
+              </p>
+              <a href={ssoLoginUrl({ link: true, next: '/settings' })} className={buttonClass()}>
+                关联 ky-z 账号
+              </a>
+            </>
+          )}
+        </Card>
+      )}
       <Card className="space-y-4 p-6">
-        <h2 className="font-semibold">修改密码</h2>
-        <Field label="当前密码">
-          <Input
-            type="password"
-            value={oldPassword}
-            onChange={(e) => setOldPassword(e.target.value)}
-            autoComplete="current-password"
-          />
-        </Field>
+        <h2 className="font-semibold">{firstPassword ? '设置密码' : '修改密码'}</h2>
+        {firstPassword ? (
+          <p className="text-sm leading-relaxed text-dim">
+            账号是用 ky-z 账号注册的，平时不需要密码。设一个密码后也能用用户名和密码登录，比如给 Python SDK 用。
+          </p>
+        ) : (
+          <Field label="当前密码">
+            <Input
+              type="password"
+              value={oldPassword}
+              onChange={(e) => setOldPassword(e.target.value)}
+              autoComplete="current-password"
+            />
+          </Field>
+        )}
         <Field label="新密码" hint="至少 6 位">
           <Input
             type="password"
@@ -73,9 +100,9 @@ export default function SettingsPage() {
         <Button
           onClick={() => password.mutate()}
           loading={password.isPending}
-          disabled={!oldPassword || newPassword.length < 6}
+          disabled={(!firstPassword && !oldPassword) || newPassword.length < 6}
         >
-          修改密码
+          {firstPassword ? '设置密码' : '修改密码'}
         </Button>
       </Card>
     </div>

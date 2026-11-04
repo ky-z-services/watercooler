@@ -15,8 +15,14 @@ export interface UserRow {
   is_admin: 0 | 1;
   balance: number;
   last_bonus_date: string | null;
+  /** The ky-z account (users.ky-z.com) this user signs in with, if any. */
+  kyz_user_id: string | null;
   created_at: number;
 }
+
+/** Accounts made through a ky-z sign-in have no password until they set one. */
+export const NO_PASSWORD = '!';
+export const hasPassword = (u: Pick<UserRow, 'password_hash'>) => u.password_hash.startsWith('scrypt$');
 
 export const toUserRef = (u: Pick<UserRow, 'id' | 'username' | 'display_name'>): UserRef => ({
   id: u.id,
@@ -36,6 +42,8 @@ export function toMe(u: UserRow, config: Config, now: number): Me {
     balance: fromCents(u.balance),
     canClaimBonus: config.dailyBonus > 0 && u.last_bonus_date !== localDate(now, config.timezone),
     isAdmin: u.is_admin === 1,
+    hasPassword: hasPassword(u),
+    kyzLinked: u.kyz_user_id !== null,
   };
 }
 
@@ -45,6 +53,10 @@ export function getUserById(db: DB, id: number): UserRow | undefined {
 
 export function getUserByUsername(db: DB, username: string): UserRow | undefined {
   return db.prepare('SELECT * FROM users WHERE username = ?').get(username) as UserRow | undefined;
+}
+
+export function getUserByKyzId(db: DB, kyzUserId: string): UserRow | undefined {
+  return db.prepare('SELECT * FROM users WHERE kyz_user_id = ?').get(kyzUserId) as UserRow | undefined;
 }
 
 /** Usernames with this prefix belong to the AI bots this site once had, so they stay reserved. */
@@ -80,21 +92,25 @@ export function adjustBalance(
   return row.balance;
 }
 
+/** A password account, or (password null) one that signs in with the ky-z account `kyzUserId`. */
 export async function createUser(
   db: DB,
   config: Config,
-  input: { username: string; displayName: string; password: string },
+  input: { username: string; displayName: string; password: string | null; kyzUserId?: string },
   now: number,
 ): Promise<UserRow> {
   if (getUserByUsername(db, input.username)) throw conflict('用户名已被占用');
   if (input.username.toLowerCase().startsWith(BOT_USERNAME_PREFIX)) throw conflict('用户名已被占用');
-  const passwordHash = await hashPassword(input.password);
+  const passwordHash = input.password === null ? NO_PASSWORD : await hashPassword(input.password);
   return db.transaction(() => {
     // Re-check inside the transaction: hashing is async, another request may have won the race.
     if (getUserByUsername(db, input.username)) throw conflict('用户名已被占用');
+    if (input.kyzUserId && getUserByKyzId(db, input.kyzUserId)) throw conflict('这个 ky-z 账号已经关联了别的账号');
     const { lastInsertRowid } = db
-      .prepare('INSERT INTO users (username, display_name, password_hash, created_at) VALUES (?, ?, ?, ?)')
-      .run(input.username, input.displayName, passwordHash, now);
+      .prepare(
+        'INSERT INTO users (username, display_name, password_hash, kyz_user_id, created_at) VALUES (?, ?, ?, ?, ?)',
+      )
+      .run(input.username, input.displayName, passwordHash, input.kyzUserId ?? null, now);
     const id = Number(lastInsertRowid);
     const starting = Math.round(config.startingBalance * 100);
     if (starting > 0) adjustBalance(db, id, starting, 'signup', now, { note: '注册奖励' });

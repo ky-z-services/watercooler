@@ -2,6 +2,7 @@ import { serve } from '@hono/node-server';
 import { createApp } from './app';
 import { loadConfig, loadDotEnv } from './config';
 import { openDatabase } from './db';
+import { createKyzClient } from './lib/kyz';
 import { createPolymarketClient } from './mimic/client';
 import { controlScriptRestart, createRuntime } from './runtime';
 import { serveSpa } from './static';
@@ -13,7 +14,9 @@ const db = openDatabase(config.databasePath);
 // The Polymarket mirror follows the admin's feature flags (see runtime.ts).
 const polymarket = createPolymarketClient(config);
 const runtime = createRuntime({ db, config, now: Date.now, polymarket });
-const app = createApp({ db, config, now: Date.now, runtime, restart: controlScriptRestart(), polymarket });
+// With KYZ_USERS_URL set, people sign in with their ky-z account (routes/sso.ts).
+const kyz = config.kyzUsersUrl ? createKyzClient(config.kyzUsersUrl) : undefined;
+const app = createApp({ db, config, now: Date.now, runtime, restart: controlScriptRestart(), polymarket, kyz });
 if (config.staticDir) serveSpa(app, config.staticDir);
 
 const server = serve({ fetch: app.fetch, port: config.port, hostname: config.host }, (info) => {
@@ -21,6 +24,7 @@ const server = serve({ fetch: app.fetch, port: config.port, hostname: config.hos
   console.log(`   database: ${config.databasePath}`);
   console.log(config.staticDir ? `   serving web app from ${config.staticDir}` : '   web app not built — API only');
   if (config.inviteCode) console.log('   registration requires an invite code');
+  if (config.kyzUsersUrl) console.log(`   sign-in with ky-z accounts at ${config.kyzUsersUrl}`);
 });
 
 await runtime.apply();

@@ -34,6 +34,8 @@ jobs:
             port: 3000
             site_name: Watercooler
             site_copy: watercooler
+            # Where browsers reach it, for the ky-z sign-in callback.
+            public_url: https://ky-z.com/watercooler
     env:
       INSTANCE: ${{ matrix.instance }}
       # Where the instance lives on the server, in the home directory of DEPLOY_USER.
@@ -41,6 +43,8 @@ jobs:
       BASE_PATH: ${{ matrix.base_path }}
       SITE_NAME: ${{ matrix.site_name }}
       SITE_COPY: ${{ matrix.site_copy }}
+      # The ky-z account service people sign in with (github.com/ky-z-services/ky-z-users).
+      KYZ_USERS_URL: https://users.ky-z.com
     steps:
       - uses: actions/checkout@v5
 
@@ -71,6 +75,8 @@ jobs:
           INSTANCE=$INSTANCE
           PORT=${{ matrix.port }}
           BASE_PATH=$BASE_PATH
+          PUBLIC_URL=${{ matrix.public_url }}
+          KYZ_USERS_URL=$KYZ_USERS_URL
           ENV
           tar -czf release.tgz \
             package.json pnpm-lock.yaml pnpm-workspace.yaml \

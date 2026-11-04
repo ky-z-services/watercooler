@@ -7,7 +7,7 @@ import PolymarketMirror from './pages/PolymarketMirror';
 import CreateMarket from './pages/CreateMarket';
 import Home from './pages/Home';
 import Leaderboard from './pages/Leaderboard';
-import { Login, Register } from './pages/Auth';
+import { Login, Register, Welcome } from './pages/Auth';
 import Market from './pages/Market';
 import NotFound from './pages/NotFound';
 import PortfolioPage from './pages/Portfolio';
@@ -27,6 +27,7 @@ export const router = createBrowserRouter(
         { path: '/u/:id', element: <Profile /> },
         { path: '/login', element: <Login /> },
         { path: '/register', element: <Register /> },
+        { path: '/welcome', element: <Welcome /> },
         {
           element: <RequireAuth />,
           children: [

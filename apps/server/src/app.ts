@@ -5,6 +5,7 @@ import { loadSessionUser } from './lib/session';
 import { adminRoutes } from './routes/admin';
 import { authRoutes } from './routes/auth';
 import { marketRoutes } from './routes/markets';
+import { ssoRoutes } from './routes/sso';
 import { userRoutes } from './routes/users';
 import { tradingRoutes } from './routes/trading';
 import { expireExchangeOrders } from './services/exchange';
@@ -17,6 +18,11 @@ const PUBLIC_IN_PRIVATE_MODE = new Set([
   '/api/auth/login',
   '/api/auth/register',
   '/api/auth/logout',
+  '/api/auth/sso/login',
+  '/api/auth/sso/callback',
+  '/api/auth/sso/pending',
+  '/api/auth/sso/link',
+  '/api/auth/sso/create',
 ]);
 
 export function createApp(deps: AppDeps) {
@@ -46,6 +52,7 @@ export function createApp(deps: AppDeps) {
   });
 
   api.route('/', authRoutes(deps));
+  api.route('/', ssoRoutes(deps));
   api.route('/', marketRoutes(deps));
   api.route('/', userRoutes(deps));
   api.route('/', tradingRoutes(deps));

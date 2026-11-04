@@ -5,7 +5,7 @@
 #   ssh server "bash -l -s -- <app-dir> <release>" < deploy/remote-deploy.sh
 #
 # <app-dir> may be absolute or relative to the deploy user's home (e.g. "watercooler" = ~/watercooler).
-# The release's instance.env names the instance (INSTANCE, PORT, BASE_PATH).
+# The release's instance.env names the instance (INSTANCE, PORT, BASE_PATH) and how it is reached.
 # Layout under <app-dir>:
 #   releases/<release>/   unpacked builds (the newest $KEEP_RELEASES are kept)
 #   current -> releases/  the release the service runs

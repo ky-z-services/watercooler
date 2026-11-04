@@ -12,7 +12,7 @@ set -euo pipefail
 APP_DIR=${APP_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)}
 ENTRY=apps/server/dist/index.js
 
-# Instance settings (INSTANCE, PORT, BASE_PATH) are written into every release by
+# Instance settings (INSTANCE, PORT, BASE_PATH, PUBLIC_URL, KYZ_USERS_URL) are written into every release by
 # .github/workflows/deploy.yml, so they always match how that release was built.
 # The defaults cover releases built before instance.env existed.
 INSTANCE=watercooler
@@ -33,6 +33,9 @@ export NODE_ENV=production
 # Only reachable through nginx, never directly from the internet.
 export HOST=127.0.0.1
 export PORT BASE_PATH
+# Sign-in with ky-z accounts (unset in releases built before it; shared/.env can set them then).
+if [ -n "${PUBLIC_URL:-}" ]; then export PUBLIC_URL; fi
+if [ -n "${KYZ_USERS_URL:-}" ]; then export KYZ_USERS_URL; fi
 export DATABASE_PATH="$APP_DIR/shared/data/$INSTANCE.db"
 # Lets admins restart the instance from /admin, and shows what is deployed.
 export INSTANCE

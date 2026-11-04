@@ -19,6 +19,10 @@ export interface Me extends PublicUser {
   balance: number;
   canClaimBonus: boolean;
   isAdmin: boolean;
+  /** Has a Watercooler password (accounts made through a ky-z sign-in start without one). */
+  hasPassword: boolean;
+  /** Signs in with a ky-z account (users.ky-z.com). */
+  kyzLinked: boolean;
 }
 
 export interface AppConfig {
@@ -30,6 +34,16 @@ export interface AppConfig {
   mimic: boolean;
   /** Whether new markets may use the Polymarket (order book) mode. */
   polymarket: boolean;
+  /** Whether people sign in with their ky-z account instead of a Watercooler password. */
+  sso: boolean;
+}
+
+/** A ky-z sign-in with no Watercooler account yet: link an existing one or create one. */
+export interface SsoPending {
+  /** The ky-z account's display name. */
+  displayName: string;
+  /** A free Watercooler username to suggest for a new account. */
+  suggestedUsername: string;
 }
 
 /** `closed` is derived: betting time is over but the creator has not announced the result yet. */

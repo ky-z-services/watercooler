@@ -15,6 +15,7 @@ import type {
   Portfolio,
   PricePoint,
   SiteStats,
+  SsoPending,
   UserProfile,
   ExchangeState,
   ExchangeOrder,
@@ -74,8 +75,16 @@ export const api = {
   login: (username: string, password: string) => post<{ user: Me }>('/auth/login', { username, password }),
   register: (input: { username: string; displayName: string; password: string; inviteCode?: string }) =>
     post<{ user: Me }>('/auth/register', input),
-  logout: () => post<{ ok: true }>('/auth/logout'),
-  changePassword: (oldPassword: string, newPassword: string) => post('/auth/password', { oldPassword, newPassword }),
+  /** With ky-z sign-in, `ssoLogoutUrl` signs out of the account service too (and comes back). */
+  logout: () => post<{ ok: true; ssoLogoutUrl?: string }>('/auth/logout'),
+  /** `oldPassword` is left out by accounts that have no password yet. */
+  changePassword: (oldPassword: string | undefined, newPassword: string) =>
+    post('/auth/password', { oldPassword, newPassword }),
+  ssoPending: () => get<SsoPending>('/auth/sso/pending'),
+  ssoLink: (username: string, password: string) =>
+    post<{ user: Me; next: string }>('/auth/sso/link', { username, password }),
+  ssoCreate: (input: { username: string; displayName: string; inviteCode?: string }) =>
+    post<{ user: Me; next: string }>('/auth/sso/create', input),
   updateProfile: (displayName: string) => post<{ user: Me }>('/me/profile', { displayName }),
   claimBonus: () => post<{ balance: number; amount: number }>('/me/bonus'),
 

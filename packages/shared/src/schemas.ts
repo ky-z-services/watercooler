@@ -27,8 +27,16 @@ export const loginSchema = z.object({
 export type LoginInput = z.infer<typeof loginSchema>;
 
 export const changePasswordSchema = z.object({
-  oldPassword: z.string().min(1, '请输入当前密码'),
+  /** Left out by accounts that have no password yet (made through a ky-z sign-in). */
+  oldPassword: z.string().optional(),
   newPassword: password,
+});
+
+/** A first ky-z sign-in making a new Watercooler account. */
+export const ssoCreateSchema = z.object({
+  username,
+  displayName,
+  inviteCode: z.string().trim().optional(),
 });
 
 export const updateProfileSchema = z.object({ displayName });

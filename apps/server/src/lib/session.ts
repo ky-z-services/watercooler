@@ -10,7 +10,7 @@ const SESSION_TTL = 30 * DAY;
 
 const hashToken = (token: string) => createHash('sha256').update(token).digest('hex');
 
-function isHttps(c: Context): boolean {
+export function isHttps(c: Context): boolean {
   return new URL(c.req.url).protocol === 'https:' || c.req.header('x-forwarded-proto') === 'https';
 }
 

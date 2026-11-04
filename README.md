@@ -14,6 +14,7 @@
 - **排行榜**：按已结算盈利 / 入账净值 / 下注次数排名
 - **经济系统**：注册送 1000 水滴，每日签到 +100，系统不做庄、不补贴
 - **Polymarket 镜像盘**：默认开启（需要先开 Polymarket 模式）。每 5 分钟从 polymarket.com 同步 24 小时成交最多的前 K 个事件（默认 50，管理员可改），放在「Polymarket」页面。大家按 Polymarket 的实时盘口用水滴买卖 Yes / No（只有市价单，价格按对自己不利的方向取整到 0.01、整份成交），对手是本站，所以买卖只影响自己的输赢，不会改变 Polymarket 的价格；Polymarket 出结果后自动按每份 1 / 0（平局 0.5）兑付，关闭镜像后已有持仓照样结算。因为对手是本站，镜像盘的输赢会让全站水滴总量增减
+- **ky-z 账号登录**：设置了 `KYZ_USERS_URL` 时，登录和注册都跳到 ky-z 账号服务（[ky-z-users](https://github.com/ky-z-services/ky-z-users)），所有 ky-z 网站共用一个账号。第一次用 ky-z 账号登录时，可以用原来的用户名和密码关联已有账号（水滴、下注和排名都保留），或者新建一个；之后在「账号设置」里也能关联。原来的密码仍然可以登录（比如给 Python SDK 用），用 ky-z 注册的账号可以在设置里补一个密码
 - **实例管理**：管理员在网站的 `/admin` 开关功能（Polymarket 模式和镜像盘）、修改站点设置、在线重启实例、给人加减水滴、任命其他管理员，所有操作都有记录。第一个管理员和忘记密码都由站长在服务器上用命令处理（见 [`deploy/README.md`](deploy/README.md)）。管理员不能替人公布市场结果
 - **移动端适配**：底部导航栏，下注面板自动排在图表下方
 - **日间 / 黑夜模式**：一键切换，界面风格参照非凸科技官网
@@ -111,20 +112,22 @@ sqlite3 data/watercooler.db ".backup 'backup-$(date +%F).db'"
 
 通过环境变量或仓库根目录的 `.env` 文件配置，全部可选，详见 [`.env.example`](.env.example)：
 
-| 变量                                           | 默认值                | 说明                                                                    |
-| ---------------------------------------------- | --------------------- | ----------------------------------------------------------------------- |
-| `HOST`                                         | `0.0.0.0`             | 监听地址，放在 nginx 后面时设为 `127.0.0.1`                             |
-| `PORT`                                         | `3000`                | 服务端口                                                                |
-| `BASE_PATH`                                    | 无（站点根目录）      | 部署在子路径下时设置，如 `/watercooler`；**构建前端和运行服务时都要设** |
-| `DATABASE_PATH`                                | `data/watercooler.db` | SQLite 文件路径                                                         |
-| `SITE_NAME`                                    | `Watercooler`         | 站点名称（logo、页脚、网页标题），**构建前端时设**                      |
-| `SITE_COPY`                                    | `watercooler`         | 文案风格：`watercooler`（茶水间）或 `neutral`（中性），**构建前端时设** |
-| `INVITE_CODE`                                  | 无                    | 设置后注册必须填写邀请码                                                |
-| `STARTING_BALANCE`                             | `1000`                | 注册赠送水滴                                                            |
-| `DAILY_BONUS`                                  | `100`                 | 每日签到奖励，`0` 关闭                                                  |
-| `PRIVATE_MODE`                                 | `false`               | 开启后必须登录才能看到任何内容                                          |
-| `APP_TIMEZONE`                                 | `Asia/Shanghai`       | 每日签到按哪个时区算「今天」                                            |
-| `POLYMARKET_GAMMA_URL` / `POLYMARKET_CLOB_URL` | Polymarket 官方 API   | 镜像盘用的 Polymarket 公开接口，服务器连不上时可换成代理地址            |
+| 变量                                           | 默认值                | 说明                                                                     |
+| ---------------------------------------------- | --------------------- | ------------------------------------------------------------------------ |
+| `HOST`                                         | `0.0.0.0`             | 监听地址，放在 nginx 后面时设为 `127.0.0.1`                              |
+| `PORT`                                         | `3000`                | 服务端口                                                                 |
+| `BASE_PATH`                                    | 无（站点根目录）      | 部署在子路径下时设置，如 `/watercooler`；**构建前端和运行服务时都要设**  |
+| `DATABASE_PATH`                                | `data/watercooler.db` | SQLite 文件路径                                                          |
+| `SITE_NAME`                                    | `Watercooler`         | 站点名称（logo、页脚、网页标题），**构建前端时设**                       |
+| `SITE_COPY`                                    | `watercooler`         | 文案风格：`watercooler`（茶水间）或 `neutral`（中性），**构建前端时设**  |
+| `INVITE_CODE`                                  | 无                    | 设置后注册必须填写邀请码                                                 |
+| `STARTING_BALANCE`                             | `1000`                | 注册赠送水滴                                                             |
+| `DAILY_BONUS`                                  | `100`                 | 每日签到奖励，`0` 关闭                                                   |
+| `PRIVATE_MODE`                                 | `false`               | 开启后必须登录才能看到任何内容                                           |
+| `APP_TIMEZONE`                                 | `Asia/Shanghai`       | 每日签到按哪个时区算「今天」                                             |
+| `POLYMARKET_GAMMA_URL` / `POLYMARKET_CLOB_URL` | Polymarket 官方 API   | 镜像盘用的 Polymarket 公开接口，服务器连不上时可换成代理地址             |
+| `KYZ_USERS_URL`                                | 无（本地账号）        | ky-z 账号服务地址（如 `https://users.ky-z.com`），设置后用 ky-z 账号登录 |
+| `PUBLIC_URL`                                   | 按请求推算            | 浏览器访问本站的地址（含子路径），ky-z 登录回调用                        |
 
 ## 玩法说明
 

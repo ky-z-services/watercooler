@@ -122,10 +122,22 @@ location /watercooler/ {
 
 `X-Forwarded-Proto` 让登录 Cookie 在 HTTPS 下带上 `Secure` 标记，`X-Forwarded-For` 用于按 IP 限制注册频率。登录 Cookie 的 path 是各自的子路径，所以多个实例的登录状态互不影响。
 
-## 五、再加一个实例
+## 五、ky-z 账号登录
 
-1. 在 `deploy.yml` 的 `matrix.include` 里加一项：`instance`（目录名）、`base_path`、`port`（没被占用的端口）、`site_name`、`site_copy`（[`site-copy.ts`](../apps/web/src/lib/site-copy.ts) 里的一套文案，也可以在那里新加一套）
-2. 服务器上：nginx 加一组 `location`（同上），crontab 加一行 `@reboot $HOME/<实例>/<实例>.sh start`
+部署时 `deploy.yml` 给实例写好了 `KYZ_USERS_URL=https://users.ky-z.com` 和 `PUBLIC_URL`（`matrix.include` 的 `public_url`），所以登录和注册都走 ky-z 账号服务（[ky-z-users](https://github.com/ky-z-services/ky-z-users)）：
+
+1. 点「登录」跳到 `users.ky-z.com`，登录后带着一次性的 code 回到 `<PUBLIC_URL>/api/auth/sso/callback`。服务器自己用 code 和 PKCE 换 token、读出 ky-z 账号，然后照常开一个本站的会话（cookie），所以 API、Python SDK 都不受影响。
+2. 第一次用某个 ky-z 账号登录时，会到 `/welcome`：用原来的用户名和密码**关联已有账号**（水滴、下注、排名都保留），或者**新建账号**（有邀请码时要填）。登录后也可以在「账号设置」里关联。
+3. 退出登录会同时退出 ky-z 账号服务。
+
+ky-z 账号服务那边不用改：它的 `OAUTH_ALLOWED_DOMAINS` 包含 `ky-z.com`，`https://ky-z.com/...` 下的回调地址都被信任。服务器要能访问 `https://users.ky-z.com`（换 token 是服务器发起的）。账号服务连不上时，登录页上「用原来的用户名和密码登录」仍然能用；用 ky-z 注册的账号可以在「账号设置」里补一个密码。
+
+要关掉 ky-z 登录、只用本站账号，把 `KYZ_USERS_URL` 从 `deploy.yml` 里去掉（或在 `shared/.env` 里覆盖不了时改 workflow）再部署。
+
+## 六、再加一个实例
+
+1. 在 `deploy.yml` 的 `matrix.include` 里加一项：`instance`（目录名）、`base_path`、`port`（没被占用的端口）、`site_name`、`site_copy`、`public_url`（[`site-copy.ts`](../apps/web/src/lib/site-copy.ts) 里的一套文案，也可以在那里新加一套）
+2. 服务器上：nginx 加一组 `location`（同上），crontab 加一行 `@reboot $HOME/<实例>/<实例>.sh start`；`public_url` 填它的访问地址
 3. 推送到 `main`
 
 下线一个实例：先从 `matrix.include` 里删掉它并推送（之后就不会再部署它），再到服务器上以部署用户执行（以 `gang-bet` 为例）：
@@ -138,7 +150,7 @@ mv ~/gang-bet ~/gang-bet.retired                              # 数据库在 sha
 
 然后从 nginx 配置里删掉它那组 `location`，`sudo nginx -t && sudo nginx -s reload`。
 
-## 六、实例管理（/admin）
+## 七、实例管理（/admin）
 
 每个实例都有自己的管理页，比如 `https://ky-z.com/watercooler/admin`；不同实例的管理员互不相通。
 
@@ -161,7 +173,7 @@ mv ~/gang-bet ~/gang-bet.retired                              # 数据库在 sha
 
 管理员不能替人公布或取消市场。在线重启靠控制脚本：服务进程在后台调用 `<实例>.sh restart`，所以只有用这个脚本启动的实例才能在线重启。
 
-## 七、日常运维
+## 八、日常运维
 
 以部署用户身份（有多个实例时把 `watercooler` 换成要操作的实例）：
 

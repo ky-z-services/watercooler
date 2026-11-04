@@ -32,6 +32,16 @@ export interface Config {
   /** Polymarket's public Gamma (markets) and CLOB (order books) APIs, for the mirror. */
   polymarketGammaUrl: string;
   polymarketClobUrl: string;
+  /**
+   * The ky-z account service (e.g. https://users.ky-z.com). When set, people sign in there instead
+   * of with a Watercooler password; null keeps the local accounts only.
+   */
+  kyzUsersUrl: string | null;
+  /**
+   * Where browsers reach this instance, base path included (e.g. https://ky-z.com/watercooler), for
+   * the sign-in callback. Null derives it from each request.
+   */
+  publicUrl: string | null;
   /** Instance name and deployed release, set by the control script on the server. */
   instance: string;
   release: string | null;
@@ -84,6 +94,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     // Polymarket's public APIs for the mirror; overridable to go through a proxy.
     polymarketGammaUrl: (env.POLYMARKET_GAMMA_URL || 'https://gamma-api.polymarket.com').replace(/\/+$/, ''),
     polymarketClobUrl: (env.POLYMARKET_CLOB_URL || 'https://clob.polymarket.com').replace(/\/+$/, ''),
+    kyzUsersUrl: env.KYZ_USERS_URL?.trim().replace(/\/+$/, '') || null,
+    publicUrl: env.PUBLIC_URL?.trim().replace(/\/+$/, '') || null,
     instance: env.INSTANCE?.trim() || 'local',
     release: env.RELEASE?.trim() || null,
   };

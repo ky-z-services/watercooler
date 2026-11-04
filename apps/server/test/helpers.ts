@@ -16,8 +16,10 @@ export function setup(
   const app = createApp({ ...base, ...extra(base) });
 
   function client() {
-    let cookie = '';
-    async function call<T = any>(method: string, path: string, body?: unknown): Promise<{ status: number; body: T }> {
+    // A tiny cookie jar: every cookie the app sets, dropped again when it is cleared.
+    const jar = new Map<string, string>();
+    async function send(method: string, path: string, body?: unknown): Promise<Response> {
+      const cookie = [...jar].map(([k, v]) => `${k}=${v}`).join('; ');
       const res = await app.request(`http://localhost/api${path}`, {
         method,
         headers: {
@@ -26,8 +28,17 @@ export function setup(
         },
         body: body !== undefined ? JSON.stringify(body) : undefined,
       });
-      const setCookie = res.headers.get('set-cookie');
-      if (setCookie) cookie = setCookie.split(';')[0]!;
+      for (const line of res.headers.getSetCookie()) {
+        const [pair, ...attrs] = line.split(';');
+        const [name, ...rest] = pair!.split('=');
+        const value = rest.join('=');
+        if (!value || attrs.some((a) => /^\s*max-age=0\s*$/i.test(a))) jar.delete(name!.trim());
+        else jar.set(name!.trim(), value);
+      }
+      return res;
+    }
+    async function call<T = any>(method: string, path: string, body?: unknown): Promise<{ status: number; body: T }> {
+      const res = await send(method, path, body);
       return { status: res.status, body: (await res.json()) as T };
     }
     return {
@@ -35,6 +46,9 @@ export function setup(
       post: <T = any>(path: string, body: unknown = {}) => call<T>('POST', path, body),
       del: <T = any>(path: string) => call<T>('DELETE', path),
       raw: call,
+      /** The response itself, e.g. a redirect. */
+      fetch: send,
+      cookies: jar,
     };
   }
 

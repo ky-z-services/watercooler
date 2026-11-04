@@ -14,9 +14,10 @@ import { RateLimiter } from '../lib/rateLimit';
 import { endSession, revokeSessions, startSession } from '../lib/session';
 import { MINUTE } from '../lib/time';
 import { featureOn, getFeatureFlags } from '../services/admin';
-import { claimDailyBonus, createUser, getUserById, getUserByUsername, toMe } from '../services/users';
+import { claimDailyBonus, createUser, getUserById, getUserByUsername, hasPassword, toMe } from '../services/users';
+import { publicUrl } from './sso';
 
-export function authRoutes({ db, config, now }: AppDeps) {
+export function authRoutes({ db, config, now, kyz }: AppDeps) {
   const app = new Hono<AppEnv>();
   const loginFailures = new RateLimiter(10, 15 * MINUTE);
   const registrations = new RateLimiter(20, 60 * MINUTE);
@@ -31,6 +32,7 @@ export function authRoutes({ db, config, now }: AppDeps) {
       privateMode: config.privateMode,
       polymarket: flags.polymarket,
       mimic: featureOn(flags, 'mimic'),
+      sso: kyz !== undefined,
     });
   });
 
@@ -40,6 +42,8 @@ export function authRoutes({ db, config, now }: AppDeps) {
   });
 
   app.post('/auth/register', async (c) => {
+    // New accounts come from a ky-z sign-in (routes/sso.ts) once the instance uses ky-z accounts.
+    if (kyz) throw forbidden('请用 ky-z 账号注册');
     const input = await parseBody(c, registerSchema);
     const ip = c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
     if (!registrations.check(ip)) throw new HttpError(429, '注册太频繁，请稍后再试');
@@ -70,13 +74,16 @@ export function authRoutes({ db, config, now }: AppDeps) {
 
   app.post('/auth/logout', (c) => {
     endSession(c, db, cookiePath);
-    return c.json({ ok: true });
+    // Signing out of the account service too, so the next ky-z sign-in asks again.
+    return c.json(kyz ? { ok: true, ssoLogoutUrl: kyz.logoutUrl(`${publicUrl(c, config)}/`) } : { ok: true });
   });
 
   app.post('/auth/password', async (c) => {
     const user = requireUser(c);
     const input = await parseBody(c, changePasswordSchema);
-    if (!(await verifyPassword(input.oldPassword, user.password_hash))) throw badRequest('当前密码不正确');
+    // Accounts made through a ky-z sign-in set their first password without one.
+    if (hasPassword(user) && !(await verifyPassword(input.oldPassword ?? '', user.password_hash)))
+      throw badRequest('当前密码不正确');
     db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(await hashPassword(input.newPassword), user.id);
     revokeSessions(c, db, user.id, true);
     return c.json({ ok: true });

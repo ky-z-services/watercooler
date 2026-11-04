@@ -520,4 +520,29 @@ export const migrations: string[] = [
         werewolf markets count as AI markets so they stay out of the people's lists like the bots'. */ `
   UPDATE markets SET is_ai = 1 WHERE werewolf_game_id IS NOT NULL;
   `,
+  /* 14: sign-in with ky-z accounts (users.ky-z.com). A user is linked to at most one ky-z account
+        and the other way round; accounts made through a ky-z sign-in have no password ('!').
+        sso_states holds sign-ins on their way to users.ky-z.com (PKCE verifier, where to return,
+        and the signed-in user asking to link it), sso_pending ky-z sign-ins that still have to
+        link or create a Watercooler account. */ `
+  ALTER TABLE users ADD COLUMN kyz_user_id TEXT;
+  CREATE UNIQUE INDEX users_kyz ON users(kyz_user_id) WHERE kyz_user_id IS NOT NULL;
+
+  CREATE TABLE sso_states (
+    state_hash   TEXT    PRIMARY KEY,
+    verifier     TEXT    NOT NULL,
+    next         TEXT    NOT NULL,
+    link_user_id INTEGER REFERENCES users(id),
+    created_at   INTEGER NOT NULL
+  );
+
+  CREATE TABLE sso_pending (
+    token_hash   TEXT    PRIMARY KEY,
+    kyz_user_id  TEXT    NOT NULL,
+    kyz_username TEXT,
+    display_name TEXT    NOT NULL,
+    next         TEXT    NOT NULL,
+    created_at   INTEGER NOT NULL
+  );
+  `,
 ];

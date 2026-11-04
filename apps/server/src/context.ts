@@ -1,3 +1,4 @@
+import type { KyzClient } from './lib/kyz';
 import type { PolymarketClient } from './mimic/client';
 import type { Context } from 'hono';
 import type { Config } from './config';
@@ -17,6 +18,8 @@ export interface AppDeps {
   restart?: () => void;
   /** Polymarket's public APIs for trading mirrors; the real ones unless a test passes a fake. */
   polymarket?: PolymarketClient;
+  /** The ky-z account service people sign in with; absent where local passwords are the only way. */
+  kyz?: KyzClient;
 }
 
 export interface AppEnv {

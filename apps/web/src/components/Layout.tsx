@@ -20,7 +20,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { api, errorMessage } from '../lib/api';
-import { useConfig, useMe, useSetMe } from '../lib/auth';
+import { ssoLoginUrl, useConfig, useMe, useSetMe } from '../lib/auth';
 import { COPY, SITE_NAME } from '../lib/site';
 import { setTheme, useTheme } from '../lib/theme';
 import { Avatar } from './Avatar';
@@ -131,7 +131,12 @@ function UserMenu() {
   if (!me) return null;
 
   const logout = async () => {
-    await api.logout().catch(() => undefined);
+    const res = await api.logout().catch(() => undefined);
+    // Signed in with ky-z: sign out there too; it sends the browser back to the home page.
+    if (res?.ssoLogoutUrl) {
+      window.location.assign(res.ssoLogoutUrl);
+      return;
+    }
     qc.setQueryData(['me'], { user: null });
     qc.removeQueries({ queryKey: ['portfolio'] });
     await qc.invalidateQueries();
@@ -187,7 +192,8 @@ function UserMenu() {
 
 function Navbar() {
   const { me, loading } = useMe();
-  const creating = useLocation().pathname === '/create';
+  const here = useLocation();
+  const creating = here.pathname === '/create';
   const config = useConfig();
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-panel/95 backdrop-blur">
@@ -224,12 +230,29 @@ function Navbar() {
             </>
           ) : (
             <>
-              <Link to="/login" className={buttonClass({ variant: 'ghost', size: 'sm', pill: true })}>
-                登录
-              </Link>
-              <Link to="/register" className={buttonClass({ size: 'sm', pill: true })}>
-                注册
-              </Link>
+              {config?.sso ? (
+                // Straight to the ky-z sign-in, back to this page afterwards.
+                <>
+                  <a
+                    href={ssoLoginUrl({ next: here.pathname + here.search })}
+                    className={buttonClass({ variant: 'ghost', size: 'sm', pill: true })}
+                  >
+                    登录
+                  </a>
+                  <a href={ssoLoginUrl({ create: true })} className={buttonClass({ size: 'sm', pill: true })}>
+                    注册
+                  </a>
+                </>
+              ) : (
+                <>
+                  <Link to="/login" className={buttonClass({ variant: 'ghost', size: 'sm', pill: true })}>
+                    登录
+                  </Link>
+                  <Link to="/register" className={buttonClass({ size: 'sm', pill: true })}>
+                    注册
+                  </Link>
+                </>
+              )}
             </>
           )}
         </div>
@@ -415,7 +438,7 @@ export function Layout() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
-  if (config?.privateMode && !loading && !me && pathname !== '/login' && pathname !== '/register') {
+  if (config?.privateMode && !loading && !me && !['/login', '/register', '/welcome'].includes(pathname)) {
     return <Navigate to={`/login?next=${encodeURIComponent(pathname)}`} replace />;
   }
   return (
